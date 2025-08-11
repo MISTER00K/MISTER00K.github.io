@@ -117,11 +117,6 @@ body{
   border-radius:2px;
 }
 
-/* mobile nav (hidden by default) */
-.nav{
-  /* default will be visible on desktop; hide on mobile with media query */
-}
-
 /* contenido principal */
 .main-content{
   padding-top:90px; /* espacio para header */
