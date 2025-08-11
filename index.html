@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Clicker Pescados</title>
   <style>
-    /* estilos mínimos, adapta a tu CSS */
     body {
       font-family: Arial;
       color: #111;
@@ -64,127 +63,123 @@
   </div>
 
 <script>
-  // Rellena con tus valores de Supabase
-  const SUPABASE_URL = 'https://gbfuaqibhrdhbkmabveo.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZnVhcWliaHJkaGJrbWFidmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzY3NjYsImV4cCI6MjA3MDQ1Mjc2Nn0.y0gAd5xySKJrCOKGpEjXM4vgcd9LwPvRe1PPcpFl_tE';
+  window.onload = () => {
+    const SUPABASE_URL = 'https://gbfuaqibhrdhbkmabveo.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZnVhcWliaHJkaGJrbWFidmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzY3NjYsImV4cCI6MjA3MDQ1Mjc2Nn0.y0gAd5xySKJrCOKGpEjXM4vgcd9LwPvRe1PPcpFl_tE';
 
-  const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  const btnDiscord = document.getElementById('btn-discord');
-  const userArea = document.getElementById('user-area');
-  const userIdSpan = document.getElementById('user-id');
-  const discordTagSpan = document.getElementById('discord-tag');
-  const fishCountSpan = document.getElementById('fish-count');
-  const clickerBtn = document.getElementById('clicker');
-  const msg = document.getElementById('msg');
-  const discordInput = document.getElementById('discord-id');
-  const saveDiscordBtn = document.getElementById('save-discord');
-  const authDiv = document.getElementById('auth');
+    const btnDiscord = document.getElementById('btn-discord');
+    const userArea = document.getElementById('user-area');
+    const userIdSpan = document.getElementById('user-id');
+    const discordTagSpan = document.getElementById('discord-tag');
+    const fishCountSpan = document.getElementById('fish-count');
+    const clickerBtn = document.getElementById('clicker');
+    const msg = document.getElementById('msg');
+    const discordInput = document.getElementById('discord-id');
+    const saveDiscordBtn = document.getElementById('save-discord');
+    const authDiv = document.getElementById('auth');
 
-  // Login con Discord
-  btnDiscord.onclick = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-    });
-    if (error) {
-      msg.textContent = 'Error: ' + error.message;
-    }
-    // No necesitas hacer nada más aquí, el redirect hace el trabajo
-  };
-
-  // Verificar estado de sesión en load y on auth change
-  async function checkSession() {
-    const { data } = await supabase.auth.getSession();
-    const session = data.session;
-    if (session && session.user) {
-      const user = session.user;
-      authDiv.style.display = 'none';
-      userArea.style.display = 'block';
-      userIdSpan.textContent = user.id;
-
-      // Intenta obtener el Discord tag desde user_metadata (si está)
-      let discordTag = '';
-      if (user.user_metadata && user.user_metadata.provider_id === 'discord') {
-        // En algunos casos el tag puede estar en user_metadata.name o user_metadata.user_name
-        discordTag = user.user_metadata.name || user.user_metadata.user_name || '';
-      }
-      discordTagSpan.textContent = discordTag || '(No disponible)';
-
-      // obtener discord_id y contador desde tabla players
-      const { data: players, error } = await supabase
-        .from('players')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
+    btnDiscord.addEventListener('click', async () => {
+      console.log('Click detectado en botón Discord');
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+      });
       if (error) {
+        msg.textContent = 'Error: ' + error.message;
         console.error(error);
-        msg.textContent = 'Error cargando datos: ' + error.message;
+      }
+    });
+
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (session && session.user) {
+        const user = session.user;
+        console.log('Usuario logueado:', user);
+        authDiv.style.display = 'none';
+        userArea.style.display = 'block';
+        userIdSpan.textContent = user.id;
+
+        // Obtener Discord tag si está disponible
+        let discordTag = '';
+        if (user.user_metadata && user.user_metadata.provider_id === 'discord') {
+          discordTag = user.user_metadata.name || user.user_metadata.user_name || '';
+        }
+        discordTagSpan.textContent = discordTag || '(No disponible)';
+
+        // Obtener datos de la tabla players
+        const { data: players, error } = await supabase
+          .from('players')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error(error);
+          msg.textContent = 'Error cargando datos: ' + error.message;
+          fishCountSpan.textContent = '0';
+          discordInput.value = '';
+          return;
+        }
+
+        if (players) {
+          fishCountSpan.textContent = players.fish || 0;
+          discordInput.value = players.discord_id || '';
+        } else {
+          fishCountSpan.textContent = '0';
+          discordInput.value = '';
+        }
+      } else {
+        authDiv.style.display = 'block';
+        userArea.style.display = 'none';
+        userIdSpan.textContent = '';
+        discordTagSpan.textContent = '';
         fishCountSpan.textContent = '0';
         discordInput.value = '';
+      }
+    }
+
+    checkSession();
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      checkSession();
+    });
+
+    clickerBtn.onclick = async () => {
+      const user = supabase.auth.getUser().data.user;
+      if (!user) {
+        msg.textContent = 'Debes iniciar sesión primero.';
         return;
       }
-
-      if (players) {
-        fishCountSpan.textContent = players.fish || 0;
-        discordInput.value = players.discord_id || '';
-      } else {
-        fishCountSpan.textContent = '0';
-        discordInput.value = '';
+      const { data, error } = await supabase.rpc('increment_fish', {
+        p_user: user.id,
+        p_amount: 1,
+      });
+      if (error) {
+        console.error(error);
+        msg.textContent = 'Error: ' + error.message;
+        return;
       }
-    } else {
-      userArea.style.display = 'none';
-      authDiv.style.display = 'block';
-      userIdSpan.textContent = '';
-      discordTagSpan.textContent = '';
-      fishCountSpan.textContent = '0';
-      discordInput.value = '';
-    }
-  }
+      fishCountSpan.textContent = String(data);
+    };
 
-  // llamado inicial
-  checkSession();
-
-  // escucha cambios de sesión
-  supabase.auth.onAuthStateChange((_event, session) => {
-    checkSession();
-  });
-
-  // clicker: llamar RPC increment_fish
-  clickerBtn.onclick = async () => {
-    const user = supabase.auth.getUser().data.user;
-    if (!user) {
-      msg.textContent = 'Debes iniciar sesión primero.';
-      return;
-    }
-    const { data, error } = await supabase.rpc('increment_fish', {
-      p_user: user.id,
-      p_amount: 1,
-    });
-    if (error) {
-      console.error(error);
-      msg.textContent = 'Error: ' + error.message;
-      return;
-    }
-    fishCountSpan.textContent = String(data); // returns new fish count
-  };
-
-  // guardar discord id (simple)
-  saveDiscordBtn.onclick = async () => {
-    const discordId = discordInput.value.trim();
-    const user = supabase.auth.getUser().data.user;
-    if (!user) {
-      msg.textContent = 'Debes iniciar sesión primero.';
-      return;
-    }
-    const { error } = await supabase
-      .from('players')
-      .upsert({ user_id: user.id, discord_id: discordId }, { merge: true });
-    if (error) {
-      msg.textContent = 'Error guardando: ' + error.message;
-      return;
-    }
-    msg.textContent = 'Discord ID guardado (puede requerir verificación manual).';
+    saveDiscordBtn.onclick = async () => {
+      const discordId = discordInput.value.trim();
+      const user = supabase.auth.getUser().data.user;
+      if (!user) {
+        msg.textContent = 'Debes iniciar sesión primero.';
+        return;
+      }
+      const { error } = await supabase
+        .from('players')
+        .upsert({ user_id: user.id, discord_id: discordId }, { merge: true });
+      if (error) {
+        msg.textContent = 'Error guardando: ' + error.message;
+        return;
+      }
+      msg.textContent = 'Discord ID guardado (puede requerir verificación manual).';
+    };
   };
 </script>
 </body>
