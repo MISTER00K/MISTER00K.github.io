@@ -67,7 +67,7 @@
     const SUPABASE_URL = 'https://gbfuaqibhrdhbkmabveo.supabase.co';
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZnVhcWliaHJkaGJrbWFidmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzY3NjYsImV4cCI6MjA3MDQ1Mjc2Nn0.y0gAd5xySKJrCOKGpEjXM4vgcd9LwPvRe1PPcpFl_tE';
 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     const btnDiscord = document.getElementById('btn-discord');
     const userArea = document.getElementById('user-area');
@@ -82,7 +82,7 @@
 
     btnDiscord.addEventListener('click', async () => {
       console.log('Click detectado en botón Discord');
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await client.auth.signInWithOAuth({
         provider: 'discord',
       });
       if (error) {
@@ -92,7 +92,7 @@
     });
 
     async function checkSession() {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await client.auth.getSession();
       const session = data.session;
       if (session && session.user) {
         const user = session.user;
@@ -101,15 +101,13 @@
         userArea.style.display = 'block';
         userIdSpan.textContent = user.id;
 
-        // Obtener Discord tag si está disponible
         let discordTag = '';
         if (user.user_metadata && user.user_metadata.provider_id === 'discord') {
           discordTag = user.user_metadata.name || user.user_metadata.user_name || '';
         }
         discordTagSpan.textContent = discordTag || '(No disponible)';
 
-        // Obtener datos de la tabla players
-        const { data: players, error } = await supabase
+        const { data: players, error } = await client
           .from('players')
           .select('*')
           .eq('user_id', user.id)
@@ -142,17 +140,17 @@
 
     checkSession();
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    client.auth.onAuthStateChange((_event, session) => {
       checkSession();
     });
 
     clickerBtn.onclick = async () => {
-      const user = supabase.auth.getUser().data.user;
+      const user = client.auth.getUser().data.user;
       if (!user) {
         msg.textContent = 'Debes iniciar sesión primero.';
         return;
       }
-      const { data, error } = await supabase.rpc('increment_fish', {
+      const { data, error } = await client.rpc('increment_fish', {
         p_user: user.id,
         p_amount: 1,
       });
@@ -166,12 +164,12 @@
 
     saveDiscordBtn.onclick = async () => {
       const discordId = discordInput.value.trim();
-      const user = supabase.auth.getUser().data.user;
+      const user = client.auth.getUser().data.user;
       if (!user) {
         msg.textContent = 'Debes iniciar sesión primero.';
         return;
       }
-      const { error } = await supabase
+      const { error } = await client
         .from('players')
         .upsert({ user_id: user.id, discord_id: discordId }, { merge: true });
       if (error) {
