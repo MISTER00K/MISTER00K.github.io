@@ -67,7 +67,7 @@
     const SUPABASE_URL = 'https://gbfuaqibhrdhbkmabveo.supabase.co';
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZnVhcWliaHJkaGJrbWFidmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzY3NjYsImV4cCI6MjA3MDQ1Mjc2Nn0.y0gAd5xySKJrCOKGpEjXM4vgcd9LwPvRe1PPcpFl_tE';
 
-    const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     const btnDiscord = document.getElementById('btn-discord');
     const userArea = document.getElementById('user-area');
