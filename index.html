@@ -63,7 +63,7 @@
   </div>
 
 <script>
-  window.onload = () => {
+  window.onload = async () => {
     const SUPABASE_URL = 'https://gbfuaqibhrdhbkmabveo.supabase.co';
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZnVhcWliaHJkaGJrbWFidmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzY3NjYsImV4cCI6MjA3MDQ1Mjc2Nn0.y0gAd5xySKJrCOKGpEjXM4vgcd9LwPvRe1PPcpFl_tE';
 
@@ -80,23 +80,22 @@
     const saveDiscordBtn = document.getElementById('save-discord');
     const authDiv = document.getElementById('auth');
 
-    btnDiscord.addEventListener('click', async () => {
-      console.log('Click detectado en botón Discord');
-      const { data, error } = await client.auth.signInWithOAuth({
-        provider: 'discord',
-      });
-      if (error) {
-        msg.textContent = 'Error: ' + error.message;
-        console.error(error);
+    // Limpia el hash (#access_token=...) de la URL después de que Supabase procese el token
+    function clearUrlHash() {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.pathname + window.location.search);
+      } else {
+        // Fallback para navegadores antiguos
+        window.location.hash = '';
       }
-    });
+    }
 
+    // Chequear sesión e inicializar UI
     async function checkSession() {
-      const { data } = await client.auth.getSession();
-      const session = data.session;
-      if (session && session.user) {
-        const user = session.user;
-        console.log('Usuario logueado:', user);
+      const { data, error } = await client.auth.getSession();
+
+      if (data.session) {
+        const user = data.session.user;
         authDiv.style.display = 'none';
         userArea.style.display = 'block';
         userIdSpan.textContent = user.id;
@@ -107,6 +106,7 @@
         }
         discordTagSpan.textContent = discordTag || '(No disponible)';
 
+        // Obtener datos del jugador desde Supabase
         const { data: players, error } = await client
           .from('players')
           .select('*')
@@ -138,42 +138,64 @@
       }
     }
 
+    // Primero verifica si hay token en URL y que supabase procese la sesión
+    try {
+      const { error } = await client.auth.getSession();
+      // Si el token está en la URL, Supabase automáticamente lo toma al llamar getSession
+      // Limpiamos el hash para que no quede visible
+      clearUrlHash();
+    } catch (e) {
+      console.error('Error procesando sesión:', e);
+    }
+
     checkSession();
 
     client.auth.onAuthStateChange((_event, session) => {
       checkSession();
     });
 
+    btnDiscord.addEventListener('click', async () => {
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'discord',
+      });
+      if (error) {
+        msg.textContent = 'Error: ' + error.message;
+        console.error(error);
+      }
+    });
+
     clickerBtn.onclick = async () => {
-      const user = client.auth.getUser().data.user;
-      if (!user) {
+      const { data, error } = await client.auth.getSession();
+      if (!data.session) {
         msg.textContent = 'Debes iniciar sesión primero.';
         return;
       }
-      const { data, error } = await client.rpc('increment_fish', {
+      const user = data.session.user;
+      const { data: newFish, error: rpcError } = await client.rpc('increment_fish', {
         p_user: user.id,
         p_amount: 1,
       });
-      if (error) {
-        console.error(error);
-        msg.textContent = 'Error: ' + error.message;
+      if (rpcError) {
+        console.error(rpcError);
+        msg.textContent = 'Error: ' + rpcError.message;
         return;
       }
-      fishCountSpan.textContent = String(data);
+      fishCountSpan.textContent = String(newFish);
     };
 
     saveDiscordBtn.onclick = async () => {
       const discordId = discordInput.value.trim();
-      const user = client.auth.getUser().data.user;
-      if (!user) {
+      const { data, error } = await client.auth.getSession();
+      if (!data.session) {
         msg.textContent = 'Debes iniciar sesión primero.';
         return;
       }
-      const { error } = await client
+      const user = data.session.user;
+      const { error: upsertError } = await client
         .from('players')
         .upsert({ user_id: user.id, discord_id: discordId }, { merge: true });
-      if (error) {
-        msg.textContent = 'Error guardando: ' + error.message;
+      if (upsertError) {
+        msg.textContent = 'Error guardando: ' + upsertError.message;
         return;
       }
       msg.textContent = 'Discord ID guardado (puede requerir verificación manual).';
