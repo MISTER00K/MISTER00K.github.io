@@ -1,36 +1,52 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-    <link rel="stylesheet" href="static/css/style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sobre - Mi sitio</title>
+  <link rel="stylesheet" href="static/css/style.css" />
 </head>
 <body>
-    <!-- Hotbar -->
-    <header class="navbar">
-        <div class="menu-toggle" id="menu-toggle">&#9776;</div>
-        <nav class="nav-links" id="nav-links">
-            <a href="index.html">Inicio</a>
-            <a href="about.html">Sobre</a>
-            <a href="contact.html">Contacto</a>
-        </nav>
-    </header>
+  <!-- mismo header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">MiSitio</a>
+      <button class="burger" id="burger-about" aria-label="Abrir menú" aria-expanded="false">
+        <span class="burger-bar"></span><span class="burger-bar"></span><span class="burger-bar"></span>
+      </button>
 
-    <!-- Contenido -->
-    <main class="contenido">
-        <h1>Bienvenido</h1>
-        <p>Esta es una página de ejemplo con menú lateral y barra transparente.</p>
-    </main>
+      <nav class="nav" id="nav-about">
+        <a class="nav-link" href="index.html">Inicio</a>
+        <a class="nav-link" href="about.html">Sobre</a>
+        <a class="nav-link" href="projects.html">Proyectos</a>
+        <a class="nav-link" href="contact.html">Contacto</a>
+      </nav>
+    </div>
+  </header>
 
-    <script>
-        // JS para el menú lateral
-        const menuToggle = document.getElementById('menu-toggle');
-        const navLinks = document.getElementById('nav-links');
+  <main class="container main-content">
+    <h1>Sobre nosotros</h1>
+    <p>Texto sobre tu proyecto/equipo...</p>
+  </main>
 
-        menuToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('show');
-        });
-    </script>
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2025 MiSitio</p>
+    </div>
+  </footer>
+
+  <script>
+    // setup burger duplicado para páginas (cada página tiene su propio id)
+    (function() {
+      const burger = document.getElementById('burger-about');
+      const nav = document.getElementById('nav-about');
+      if (!burger || !nav) return;
+      burger.addEventListener('click', () => {
+        const isOpen = nav.classList.toggle('open');
+        burger.setAttribute('aria-expanded', String(isOpen));
+      });
+      nav.querySelectorAll('.nav-link').forEach(l => l.addEventListener('click', () => nav.classList.remove('open')));
+    })();
+  </script>
 </body>
 </html>
