@@ -1,70 +1,191 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Inicio - Mi sitio</title>
-  <link rel="stylesheet" href="static/css/style.css" />
+  <title>Clicker Pescados</title>
+  <style>
+    /* estilos mínimos, adapta a tu CSS */
+    body {
+      font-family: Arial;
+      color: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+    .card {
+      background: #f7f7f7;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    button {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      background: #06b6d4;
+      color: white;
+      cursor: pointer;
+    }
+    input {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      width: 100%;
+      margin: 6px 0;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand" href="index.html">MiSitio</a>
+  <div class="card">
+    <h2>Clicker de Pescados</h2>
 
-      <button class="burger" id="burger" aria-label="Abrir menú" aria-expanded="false">
-        <span class="burger-bar"></span>
-        <span class="burger-bar"></span>
-        <span class="burger-bar"></span>
-      </button>
-
-      <nav class="nav" id="nav">
-        <a class="nav-link" href="index.html">Inicio</a>
-        <a class="nav-link" href="about.html">Sobre</a>
-        <a class="nav-link" href="projects.html">Proyectos</a>
-        <a class="nav-link" href="contact.html">Contacto</a>
-      </nav>
+    <div id="auth">
+      <button id="btn-discord">Iniciar sesión con Discord</button>
+      <hr/>
+      <p>O, si ya estás logueado, configura tu Discord ID (opcional).</p>
     </div>
-  </header>
 
-  <main class="container main-content">
-    <h1>Bienvenido</h1>
-    <p>Esta es una página limpia y responsive. Abre el menú en pantallas pequeñas con el botón de la esquina.</p>
-    <section class="cards">
-      <article class="card">
-        <h3>Sección 1</h3>
-        <p>Texto de ejemplo para la sección 1.</p>
-      </article>
-      <article class="card">
-        <h3>Sección 2</h3>
-        <p>Texto de ejemplo para la sección 2.</p>
-      </article>
-      <article class="card">
-        <h3>Sección 3</h3>
-        <p>Texto de ejemplo para la sección 3.</p>
-      </article>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <div class="container">
-      <p>© 2025 MiSitio — Hecho con ❤️</p>
+    <div id="user-area" style="display:none">
+      <p>Usuario ID: <span id="user-id"></span></p>
+      <p>Discord Tag: <span id="discord-tag"></span></p>
+      <p>Discord ID (numérico): <input id="discord-id" placeholder="123456789012345678" /></p>
+      <button id="save-discord">Guardar Discord ID</button>
+      <hr/>
+      <p>Pescados: <strong id="fish-count">0</strong></p>
+      <button id="clicker">¡Pezcar! +1</button>
     </div>
-  </footer>
 
-  <script>
-    // Toggle menú móvil
-    const burger = document.getElementById('burger');
-    const nav = document.getElementById('nav');
+    <p id="msg" style="color:green"></p>
+  </div>
 
-    burger.addEventListener('click', () => {
-      const isOpen = nav.classList.toggle('open');
-      burger.setAttribute('aria-expanded', String(isOpen));
+<script>
+  // Rellena con tus valores de Supabase
+  const SUPABASE_URL = 'https://gbfuaqibhrdhbkmabveo.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZnVhcWliaHJkaGJrbWFidmVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzY3NjYsImV4cCI6MjA3MDQ1Mjc2Nn0.y0gAd5xySKJrCOKGpEjXM4vgcd9LwPvRe1PPcpFl_tE';
+
+  const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  const btnDiscord = document.getElementById('btn-discord');
+  const userArea = document.getElementById('user-area');
+  const userIdSpan = document.getElementById('user-id');
+  const discordTagSpan = document.getElementById('discord-tag');
+  const fishCountSpan = document.getElementById('fish-count');
+  const clickerBtn = document.getElementById('clicker');
+  const msg = document.getElementById('msg');
+  const discordInput = document.getElementById('discord-id');
+  const saveDiscordBtn = document.getElementById('save-discord');
+  const authDiv = document.getElementById('auth');
+
+  // Login con Discord
+  btnDiscord.onclick = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
     });
+    if (error) {
+      msg.textContent = 'Error: ' + error.message;
+    }
+    // No necesitas hacer nada más aquí, el redirect hace el trabajo
+  };
 
-    // Cerrar menú al click en un link (útil en mobile)
-    document.querySelectorAll('.nav-link').forEach(link =>
-      link.addEventListener('click', () => nav.classList.remove('open'))
-    );
-  </script>
+  // Verificar estado de sesión en load y on auth change
+  async function checkSession() {
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    if (session && session.user) {
+      const user = session.user;
+      authDiv.style.display = 'none';
+      userArea.style.display = 'block';
+      userIdSpan.textContent = user.id;
+
+      // Intenta obtener el Discord tag desde user_metadata (si está)
+      let discordTag = '';
+      if (user.user_metadata && user.user_metadata.provider_id === 'discord') {
+        // En algunos casos el tag puede estar en user_metadata.name o user_metadata.user_name
+        discordTag = user.user_metadata.name || user.user_metadata.user_name || '';
+      }
+      discordTagSpan.textContent = discordTag || '(No disponible)';
+
+      // obtener discord_id y contador desde tabla players
+      const { data: players, error } = await supabase
+        .from('players')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        msg.textContent = 'Error cargando datos: ' + error.message;
+        fishCountSpan.textContent = '0';
+        discordInput.value = '';
+        return;
+      }
+
+      if (players) {
+        fishCountSpan.textContent = players.fish || 0;
+        discordInput.value = players.discord_id || '';
+      } else {
+        fishCountSpan.textContent = '0';
+        discordInput.value = '';
+      }
+    } else {
+      userArea.style.display = 'none';
+      authDiv.style.display = 'block';
+      userIdSpan.textContent = '';
+      discordTagSpan.textContent = '';
+      fishCountSpan.textContent = '0';
+      discordInput.value = '';
+    }
+  }
+
+  // llamado inicial
+  checkSession();
+
+  // escucha cambios de sesión
+  supabase.auth.onAuthStateChange((_event, session) => {
+    checkSession();
+  });
+
+  // clicker: llamar RPC increment_fish
+  clickerBtn.onclick = async () => {
+    const user = supabase.auth.getUser().data.user;
+    if (!user) {
+      msg.textContent = 'Debes iniciar sesión primero.';
+      return;
+    }
+    const { data, error } = await supabase.rpc('increment_fish', {
+      p_user: user.id,
+      p_amount: 1,
+    });
+    if (error) {
+      console.error(error);
+      msg.textContent = 'Error: ' + error.message;
+      return;
+    }
+    fishCountSpan.textContent = String(data); // returns new fish count
+  };
+
+  // guardar discord id (simple)
+  saveDiscordBtn.onclick = async () => {
+    const discordId = discordInput.value.trim();
+    const user = supabase.auth.getUser().data.user;
+    if (!user) {
+      msg.textContent = 'Debes iniciar sesión primero.';
+      return;
+    }
+    const { error } = await supabase
+      .from('players')
+      .upsert({ user_id: user.id, discord_id: discordId }, { merge: true });
+    if (error) {
+      msg.textContent = 'Error guardando: ' + error.message;
+      return;
+    }
+    msg.textContent = 'Discord ID guardado (puede requerir verificación manual).';
+  };
+</script>
 </body>
 </html>
